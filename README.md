@@ -1,2 +1,2 @@
-# ACE2_2S21_G16
- Repositorio para el curso de Arqui 2
+# Arqui2_Practica1
+Practica 1 Arquitectura de Computadores y Ensambladores 2
