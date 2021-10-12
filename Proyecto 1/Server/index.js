@@ -1,15 +1,19 @@
 const express = require('express')
+const cors = require('cors');
 
 const app = express()
 
 const database = require('./database.js');
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 const bodyParser = require("body-parser");
 
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+//app.use(bodyParser.urlencoded({ extended: false }));
+//app.use(bodyParser.json());
+app.use(cors());
 
-app.set('port', 3001)
+app.set('port', 3002)
 
 app.listen(app.get('port'), () => {
     console.log(`Servidor corriendo en el puerto ${app.get('port')}`)
@@ -27,7 +31,7 @@ const SerialPort = require('serialport');
 const ReadLine  = require('@serialport/parser-readline');
 
 //Asignar el numero de puerto serial y baudrate
-const port = new SerialPort('COM5',{baudRate: 9600});
+const port = new SerialPort('COM6',{baudRate: 9600});
 const parser = port.pipe(new ReadLine({delimiter: '\n'}));
 
 //Lectura de datos enviados de arduino
@@ -37,7 +41,8 @@ port.on("open",() => {
 
 parser.on("data", data =>{
     console.log(data);
-    database.insertData(database.datetime(data))
+    data = database.datetime(data)
+    database.insertData(data)
     estadosilla(data)
     if(estado != 0 && contador == 0){
         if(estado ==1){
@@ -63,7 +68,7 @@ parser.on("data", data =>{
 
 // Funcion que analiza los datos en la coleccion tomadas del dia anterior
 //console.log(database.yesterday())
-database.analyzedata(database.yesterday());
+//database.analyzedata(database.yesterday());
 
 
 // Rutas
@@ -113,14 +118,15 @@ app.get('/totaltiempo',(req, res ) => {
 })
 
 //promedio veces que se levanto el usuario de la silla por dia
-app.get('/levantadaspromedio',(req, res ) => {
+app.get('/promediolevantadas',(req, res ) => {
     database.promediolevantadas(req,res)
 })
 
 //promedio del tiempo que se usa la silla por dia
-app.get('/usopromedio',(req, res ) => {
+app.get('/promediouso',(req, res ) => {
     database.promediotiempousado(req,res)
 })
+
 
 //ultimo dato de peso marcado aunque no este sentado el usuario marcar 0
 app.get('/peso',(req, res ) => {
