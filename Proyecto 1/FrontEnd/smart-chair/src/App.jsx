@@ -24,7 +24,14 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 export const App = () => {
+  const [dataRealTime, setDataRealTime] = React.useState([]);
+  const [dataUsuario, setDataUsuario] = React.useState([]);
   const [dataMonitor, setDataMonitor] = React.useState([]);
+  const [dataHistorial, setDataHistorial] = React.useState([]);
+  const [dataRangoHora, setDataRangoHora] = React.useState([]);
+  const [dataMalSentadoDias, setDataMalSentadoDias] = React.useState([]);
+  const [dataHistorialUso, setDataHistorialUso] = React.useState([]);
+  const [dataMalSentado, setDataMalSentado] = React.useState([]);
   const [dataDashboard, setDataDashboard] = React.useState([]);
   const [dataDashboardTotalTime, setDataDashboardTotalTime] = React.useState(
     []
@@ -34,6 +41,7 @@ export const App = () => {
     React.useState([]);
   const [dataDashboardPromedioLevanta, setDataDashboardPromedioLevanta] =
     React.useState([]);
+
   const classes = useStyles();
   const [open, setOpen] = React.useState(true);
   const handleDrawerOpen = () => {
@@ -42,6 +50,10 @@ export const App = () => {
   const handleDrawerClose = () => {
     setOpen(false);
   };
+
+  /**
+   * Get de los state
+   */
 
   const getDataMonitor = async () => {
     const response = await fetch(`${URL_API_BACKEND}/monitoreo`);
@@ -59,6 +71,12 @@ export const App = () => {
     const response = await fetch(`${URL_API_BACKEND}/tiempouso`);
     const allData = await response.json();
     setDataDashboardTotalTime(allData);
+  };
+
+  const getDataRealTime = async () => {
+    const response = await fetch(`${URL_API_BACKEND}/realtime`);
+    const allData = await response.json();
+    setDataRealTime([allData]);
   };
 
   const getDataDashboardTTime = async () => {
@@ -79,17 +97,36 @@ export const App = () => {
     setDataDashboardPromedioLevanta(allData);
   };
 
-  React.useEffect(() => {
-    // const interval = setInterval(() => {
-    // }, 90000);
-    getDataMonitor().catch((error) => console.error(error));
-    getDataDashboard().catch((error) => console.error(error));
-    getDataDashboardTotalTime().catch((error) => console.error(error));
-    getDataDashboardPromedioUseTime().catch((error) => console.error(error));
-    getDataDashboardTTime().catch((error) => console.error(error));
-    getDataDashboardPromedioLevanta().catch((error) => console.error(error));
+  const getDataMalSentado = async () => {
+    const response = await fetch(`${URL_API_BACKEND}/malsentadototal`);
+    const allData = await response.json();
+    setDataMalSentado(allData);
+  };
 
-    // return () => clearInterval(interval);
+  const getDataMalSentadoDias = async () => {
+    const response = await fetch(`${URL_API_BACKEND}/malsentadotiempouso`);
+    const allData = await response.json();
+    setDataMalSentadoDias(allData);
+  };
+
+  /**
+   * FIN STATE
+   */
+
+  React.useEffect(() => {
+    //const interval = setInterval(() => {
+      getDataMonitor().catch((error) => console.error(error));
+      getDataDashboard().catch((error) => console.error(error));
+      getDataDashboardTotalTime().catch((error) => console.error(error));
+      getDataDashboardPromedioUseTime().catch((error) => console.error(error));
+      getDataDashboardTTime().catch((error) => console.error(error));
+      getDataDashboardPromedioLevanta().catch((error) => console.error(error));
+      getDataRealTime().catch((error) => console.error(error));
+      getDataMalSentado().catch((error) => console.error(error));
+      getDataMalSentadoDias().catch((error) => console.error(error));
+    //}, 5000);
+
+    //return () => clearInterval(interval);
   }, []);
 
   return (
@@ -102,7 +139,10 @@ export const App = () => {
           <Container className={classes.container} maxWidth="lg">
             <Switch>
               <Route exact path="/configuracion">
-                <Configuracion />
+                <Configuracion
+                  dataUsuario={dataUsuario}
+                  setDataUsuario={setDataUsuario}
+                />
               </Route>
               <Route exact path="/dashboard">
                 <Dashboard
@@ -111,6 +151,9 @@ export const App = () => {
                   dataDashboardTotalTime={dataDashboardTotalTime}
                   dataDashboardPromedioUseTime={dataDashboardPromedioUseTime}
                   dataDashboardPromedioLevanta={dataDashboardPromedioLevanta}
+                  dataUsuario={dataUsuario}
+                  setDataUsuario={setDataUsuario}
+                  dataRealTime={dataRealTime}
                 />
               </Route>
               <Route exact path="/monitoreo">
@@ -123,6 +166,15 @@ export const App = () => {
                   dataDashboardTotalTime={dataDashboardTotalTime}
                   dataDashboardPromedioUseTime={dataDashboardPromedioUseTime}
                   dataDashboardPromedioLevanta={dataDashboardPromedioLevanta}
+                  dataHistorial={dataHistorial}
+                  dataMonitor={dataMonitor}
+                  dataHistorialUso={dataHistorialUso}
+                  setDataHistorialUso={setDataHistorialUso}
+                  setDataHistorial={setDataHistorial}
+                  setDataRangoHora={setDataRangoHora}   
+                  dataRangoHora={dataRangoHora}   
+                  dataMalSentado={dataMalSentado}
+                  dataMalSentadoDias={dataMalSentadoDias}      
                 />
               </Route>
               <Route exact path="/">

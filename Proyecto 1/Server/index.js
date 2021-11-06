@@ -1,19 +1,15 @@
 const express = require('express')
-const cors = require('cors');
 
 const app = express()
 
 const database = require('./database.js');
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
 
 const bodyParser = require("body-parser");
 
-//app.use(bodyParser.urlencoded({ extended: false }));
-//app.use(bodyParser.json());
-app.use(cors());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
-app.set('port', 3002)
+app.set('port', 3001)
 
 app.listen(app.get('port'), () => {
     console.log(`Servidor corriendo en el puerto ${app.get('port')}`)
@@ -24,6 +20,7 @@ var estadosentado =""
 var cronometro
 var tiempo = "0:0:0"
 var contador = 0
+var advertencia = false
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Conexion a puerto serial
@@ -43,6 +40,7 @@ parser.on("data", data =>{
     console.log(data);
     data = database.datetime(data)
     database.insertData(data)
+    database.analyzedata(data)
     estadosilla(data)
     if(estado != 0 && contador == 0){
         if(estado ==1){
@@ -68,6 +66,7 @@ parser.on("data", data =>{
 
 // Funcion que analiza los datos en la coleccion tomadas del dia anterior
 //console.log(database.yesterday())
+//database.analyzedata("20-9-2021");
 //database.analyzedata(database.yesterday());
 
 
@@ -80,7 +79,12 @@ app.get('/',(req, res ) => {
     //database.insertData(database.datetime(prueba))    
 })
 
-//datos tomados de cada dia /datosdia12-9-2021
+//monitoreo de datos en crudo
+app.get('/monitoreo',(req, res ) => {
+    database.monitoreo(req,res)
+})
+
+//datos tomados por dia /datosdia12-9-2021
 app.get('/datosdia:fecha',(req, res ) => {
     const {fecha} = req.params;
     database.selectData(req,res, fecha)
@@ -107,33 +111,27 @@ app.get('/pesopromedio',(req, res ) => {
     database.selectpeso(req,res)
 })
 
-//monitoreo de datos en crudo
-app.get('/monitoreo',(req, res ) => {
-    database.monitoreo(req,res)
-})
-
 //tiempo total de uso de la silla desde el dia 1 hasta el presente
 app.get('/totaltiempo',(req, res ) => {
     database.tiempototal(req,res)
 })
 
 //promedio veces que se levanto el usuario de la silla por dia
-app.get('/promediolevantadas',(req, res ) => {
+app.get('/levantadaspromedio',(req, res ) => {
     database.promediolevantadas(req,res)
 })
 
 //promedio del tiempo que se usa la silla por dia
-app.get('/promediouso',(req, res ) => {
+app.get('/usopromedio',(req, res ) => {
     database.promediotiempousado(req,res)
 })
-
 
 //ultimo dato de peso marcado aunque no este sentado el usuario marcar 0
 app.get('/peso',(req, res ) => {
     database.pesoultimodato(req,res)
 })
 
-//tiempo total que se usa la silla por dia
+//tiempo total que se usa la silla por dia *
 app.get('/tiempouso',(req, res ) => {
     database.tiempousado(req,res)
 })
@@ -163,10 +161,59 @@ app.get('/selectchair:user',(req, res ) => {
 
 //Tiempo real
 app.get('/realtime',(req, res ) => {
-    dato = "{\"estado\": \"" + estadosentado + "\", \"tiempo\": \"" + tiempo +"\"}"
+    dato = "{\"estado\": \"" + estadosentado + "\", \"tiempo\": \"" + tiempo + "\", \"advertencia\": \"" + advertencia +"\"}"
     const obj  = JSON.parse(dato);
     res.send(obj)
 })
+
+///////////////////////////////////ENDPOINTS PROYECTO 2//////////////////////////////////////////////////
+
+//FILTRO DE DATOS
+//datos tomados por mes /datosmes9
+app.get('/datosmes:mes',(req, res ) => {
+    const {mes} = req.params;
+    database.selectDatamonth(req,res, mes)
+})
+
+//datos tomados por rango de fecha /datos12-9-2021-15-9-2021
+app.post('/datos',(req, res ) => {
+    var fechai = req.body.fechai
+    var fechaf = req.body.fechaf
+    database.selectDatarango(req,res,fechai,fechaf)
+})
+
+//datos tomados por rango de hora /rangohora10:10-12:30
+app.post('/rangohora',(req, res ) => {
+    var horai = req.body.horai
+    var horaf = req.body.horaf
+    database.selectDatarangohour(req,res,horai,horaf)
+})
+
+//datos tomados por rango de hora y una fecha en especifico /rangofechahora10:10-12:30-25-9-2021
+app.post('/rangofecha',(req, res ) => {
+    var horai = req.body.horai
+    var horaf = req.body.horaf
+    var fecha = req.body.fecha
+    database.selectDatarangohourdate(req,res,horai,horaf,fecha)
+})
+
+//TIEMPO MAL SENTADO
+//tiempo total que ha pasado mal sentado
+app.get('/malsentadototal',(req, res ) => {
+    database.tiempototalmalsentado(req,res)
+})
+
+//tiempo que ha pasado mal sentado en los horarios por fecha /malsentadohorario3-11-2021
+app.get('/malsentadohorario:fecha',(req, res ) => {
+    const {fecha} = req.params;
+    database.selecthorariomalsentado(req,res, fecha)
+})
+
+//tiempo total mal sentado filtrado por dia de la semana
+app.get('/malsentadotiempouso',(req, res ) => {
+    database.tiempousadomalsentado(req,res)
+})
+
 
 /////////////////////////////////////////////////Funciones tiempo real////////////////////////////////////////
 
@@ -192,8 +239,14 @@ function carga()
                 }
             }
             //console.log(contador_s);
-            console.log("0:" + contador_m + ":" + contador_s)
+            //console.log("0:" + contador_m + ":" + contador_s)
             tiempo= "0:" + contador_m + ":" + contador_s
+            if(contador_m >= 59){
+                advertencia = true
+            }else{
+                advertencia = false
+            }
+            //console.log(advertencia)
             contador_s++;
         }
         ,1000);
@@ -206,13 +259,25 @@ function estadosilla(data){
     console.log(estado)
 }
 
-//Pruebas tiemporeal
 /*
+prueba = "{\"sentado\":" + 0 + ", \"peso\": 160}";
+console.log(prueba);
+database.insertData(database.datetime(prueba))
+database.analyzedata(database.datetime(prueba))
+*/
+
+//Pruebas tiemporeal
+
 app.post('/', (req, res) => {
+    /*var fecha = req.body.fecha
+    database.analyzedata2(fecha)
+    res.send("Dato insertado")*/
+    
     var id = req.body.id
     prueba = "{\"sentado\":" + id + ", \"peso\": 160}";
     console.log(prueba);
     database.insertData(database.datetime(prueba))
+    database.analyzedata(database.datetime(prueba))
     res.send("Dato insertado")
     estadosilla(prueba)
     if(estado != 0 && contador == 0){
@@ -236,4 +301,3 @@ app.post('/', (req, res) => {
         contador = 0
     }
 });
-*/
